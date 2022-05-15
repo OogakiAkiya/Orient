@@ -40,6 +40,16 @@ namespace OpenSocket
         {
             lock (lockObject)
             {
+                FileController file = FileController.GetInstance();
+                KeyValuePair<IPEndPoint, byte[]> addData = new KeyValuePair<IPEndPoint, byte[]>(_iPEndPoint, new byte[_data.Length]);
+                Array.Copy(_data, 0, addData.Value, 0, addData.Value.Length);
+                recvDataList.Add(addData);
+                //:以降はサーバIPアドレス,サーバポート番号,受信データサイズの順でログを書き出す
+                file.Write("udp", "Recv data:" + _iPEndPoint.Address.ToString() + "," +_iPEndPoint.Port + "," + _data.Length, true);
+
+
+                /*tcpと同じように複数のデータが一つのデータとして渡された時はこちらを使用する必要がありその場合ヘッダの先頭にデータサイズを格納
+                 * 高負荷の挙動を確かめていないため暫定的に残す
                 int count = 0;
                 while (true)
                 {
@@ -51,6 +61,7 @@ namespace OpenSocket
                     count += size;
                     if (_data.Length - count < sizeof(int)) return;
                 }
+                */
             }
         }
 
@@ -65,44 +76,30 @@ namespace OpenSocket
         }
     }
 
-
     class UDP_Client
     {
+        
+        public ClientState server { get; private set; } = new ClientState();    //serverはデータを待ち受けしつつ(クライアントで使用していないUDPポートを使用)送信にも使用している
+        int destPort = 12344;                                                   //送信先ポート
+        uint sequence = 0;                                                      //送信先ポート
 
-        public ClientState server { get; private set; } = new ClientState();
-
-        int port = 12343;
-        int sendPort = 12344;
-        uint sequence = 0;
-
-        public void Init(int _sendPort)
+        public void Init(int _destPort)
         {
-            sendPort = _sendPort;
+            destPort = _destPort;
             server.socket = new UdpClient();
-            server.socket.BeginReceive(new AsyncCallback(ReceiveCallback), server);
 
-        }
-
-        public void Init(int _port, int _sendPort)
-        {
-            port = _port;
-            sendPort = _sendPort;
-            //System.Net.IPEndPoint localEP =new System.Net.IPEndPoint(IPAddress.Any, port);
-            server.socket = new UdpClient();
-            //server.socket = new UdpClient(localEP);
-
+            //UDPサーバ起動
             server.socket.BeginReceive(new AsyncCallback(ReceiveCallback), server);
         }
 
-        //本来ならsendPortはportに変わる
+
         public void Send(KeyValuePair<IPEndPoint, byte[]> _data)
         {
 
             List<byte> sendData = new List<byte>();
             sendData.AddRange(BitConverter.GetBytes(sequence));
             sendData.AddRange(_data.Value);
-            //sender.socket.SendAsync(sendData.ToArray(), sendData.ToArray().Length, _data.Key.Address.ToString(), sendPort);
-            server.socket.SendAsync(sendData.ToArray(), sendData.ToArray().Length, _data.Key.Address.ToString(), sendPort);
+            server.socket.SendAsync(sendData.ToArray(), sendData.ToArray().Length, _data.Key.Address.ToString(), destPort);
 
             CountUPSequence();
 
@@ -110,7 +107,7 @@ namespace OpenSocket
 
         public void Send(byte[] _data, string _IP, int _port)
         {
-
+            //送信前にシーケンス番号をパケットの先頭に配置する
             List<byte> sendData = new List<byte>();
             sendData.AddRange(BitConverter.GetBytes(sequence));
             sendData.AddRange(_data);
@@ -129,11 +126,25 @@ namespace OpenSocket
             }
         }
 
-        private void ReceiveCallback(IAsyncResult ar)
+        //圧縮処理が存在する場合使用する
+        private void Decode_ReceiveCallback(IAsyncResult ar)
         {
             ClientState client = (ClientState)ar.AsyncState;
             byte[] decodeData = CompressionWrapper.Decode(client.socket.EndReceive(ar, ref client.endPoint));
             client.AddRecvData(client.endPoint, decodeData);
+            client.socket.BeginReceive(Decode_ReceiveCallback, client);
+        }
+        private void ReceiveCallback(IAsyncResult ar)
+        {
+            FileController file = FileController.GetInstance();
+            ClientState client = (ClientState)ar.AsyncState;
+           
+            //EndReceiveをAddRecvDataと同じタイミングで行うとclient.endPointがnullのままとなるので注意
+            byte[] addData = client.socket.EndReceive(ar, ref client.endPoint);
+            client.AddRecvData(client.endPoint, addData);
+            
+
+            //もう一度recv状態にする
             client.socket.BeginReceive(ReceiveCallback, client);
         }
 

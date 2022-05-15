@@ -13,49 +13,49 @@ namespace OpenSocket
         private List<byte> recvTempDataList = new List<byte>();
         private List<byte[]> recvDataList = new List<byte[]>();
         //ソケット作成
-        private TcpClient tcp = null;
+        private TcpClient socket = null;
         private NetworkStream ns;
         private System.Object lockObject = new System.Object();
         private bool deleteFlg = false;
 
         public TCP_Client() { }
 
-        ~TCP_Client() { tcp.Close(); }
+        ~TCP_Client() { socket.Close(); }
 
         public bool TryConnect(string _ipAddr, int _port)
         {
             try
             {
                 int timeout = 1000;
-                tcp = new TcpClient();
-                Task task = tcp.ConnectAsync(_ipAddr, _port);
+                socket = new TcpClient();
+                Task task = socket.ConnectAsync(_ipAddr, _port);
                 if (!task.Wait(timeout))
                 {
-                    tcp.Close();
+                    socket.Close();
                     //throw new SocketException(10060);
                     return false;
                 }
             }
             catch (SocketException e)
             {
-                tcp.Close();
+                socket.Close();
                 return false;
             }
             catch (AggregateException ae)
             {
-                tcp.Close();
+                socket.Close();
                 return false;
             }
-            tcp.Close();
+            socket.Close();
             return true;
         }
 
-        public void Init(string _hostname, int _port)
+        public void Init(string _hostname, int _destPort)
         {
-            tcp = new System.Net.Sockets.TcpClient(_hostname, _port);
+            socket = new System.Net.Sockets.TcpClient(_hostname, _destPort);
 
             //通信設定
-            ns = tcp.GetStream();
+            ns = socket.GetStream();
         }
 
         public async Task Send(byte[] _sendData, int _dataSize)
@@ -106,7 +106,7 @@ namespace OpenSocket
         {
             deleteFlg = true;
             ns.Close();
-            tcp.Close();
+            socket.Close();
         }
 
         private void Routine()

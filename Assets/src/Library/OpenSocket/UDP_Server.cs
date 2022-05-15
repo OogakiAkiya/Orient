@@ -63,12 +63,12 @@ namespace OpenSocket
     {
         public ServerState server { get; private set; } = new ServerState();
         public uint sequence { get; private set; } = 0;
-        int port = 0;
+        int sourcePort = 0;
 
-        public void Init(int _port)
+        public void Init(int _sourcePort)
         {
-            port = _port;
-            server.socket = new UdpClient(port);
+            sourcePort = _sourcePort;
+            server.socket = new UdpClient(sourcePort);
             server.socket.BeginReceive(new AsyncCallback(ReceiveCallback), server);
 
         }

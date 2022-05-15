@@ -5,15 +5,16 @@ using System.Net.Sockets;
 using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
-using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 using OpenSocket;
 
 public class UDP_ClientController : MonoBehaviour
 {
-    [SerializeField] int sourcePort = 12344;
-    [SerializeField] string serverIP = "127.0.0.1";
-    [SerializeField] GameObject gameCanvas;
+    [SerializeField] string hostname = "127.0.0.1";
+    [SerializeField] int destPort = 12344;
+    [SerializeField] Text debugText = null;                                     //ここにサーバから送ってきたデバッグ用の文字列が入る
+
     uint nowSequence = 0;
     UDP_Client socket = new UDP_Client();
 
@@ -23,7 +24,7 @@ public class UDP_ClientController : MonoBehaviour
     void Start()
     {
         //ソケット初期化(UDPのClientなので送信ポートのみの指定)
-        socket.Init(sourcePort);
+        socket.Init(destPort);
 
         //UDPのデータを受け取るためにサーバからデータを受け取る前に通信経路確保のためクライアントからデータを送っておく
         DebugSend(GameHeader.ID.DEBUG);
@@ -32,6 +33,8 @@ public class UDP_ClientController : MonoBehaviour
 
     void Update()
     {
+        DebugSend(GameHeader.ID.DEBUG);
+
         while (socket.server.GetRecvDataSize() > 0)
         {
             RecvRoutine();
@@ -50,7 +53,8 @@ public class UDP_ClientController : MonoBehaviour
 
     private void RecvRoutine()
     {
-        recvData = socket.server.GetRecvData().Value;
+        KeyValuePair<IPEndPoint, byte[]> recvPair = socket.server.GetRecvData();
+        recvData = recvPair.Value;
         uint sequence = BitConverter.ToUInt32(recvData, 0);
 
         //シーケンス番号処理
@@ -76,6 +80,6 @@ public class UDP_ClientController : MonoBehaviour
         sendData = header.GetHeader();
 
         //送信処理(非同期実行)
-        socket.Send(sendData, serverIP, sourcePort);
+        socket.Send(sendData, hostname, destPort);
     }
 }
