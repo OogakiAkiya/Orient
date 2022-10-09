@@ -34,12 +34,11 @@ public class UDP_ClientController : MonoBehaviour
     void Update()
     {
         DebugSend(GameHeader.ID.DEBUG);
-
+        Debug.Log(socket.server.GetRecvDataSize());
         while (socket.server.GetRecvDataSize() > 0)
         {
             RecvRoutine();
         }
-
         //送信頻度を調節したい場合以下を使用する
         //if (!IsInvoking("Second30FPSInvoke")) Invoke("Second30FPSInvoke", 1f / 30);
     }
@@ -69,7 +68,7 @@ public class UDP_ClientController : MonoBehaviour
         header.DecodeHeader(recvData, sizeof(uint));
 
         //ヘッダーごとの処理
-
+        Debug.Log("データ来た");
     }
     void DebugSend(GameHeader.ID _id, byte _code = 0x0000)
     {

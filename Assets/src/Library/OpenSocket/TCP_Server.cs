@@ -61,10 +61,10 @@ namespace OpenSocket
 
                 byte[] sendHeader;
 
-            //header設定
-            sendHeader = BitConverter.GetBytes(_dataSize);
-            //sendBytes作成
-            byte[] sendBytes = new byte[sendHeader.Length + _dataSize];
+                //header設定
+                sendHeader = BitConverter.GetBytes(_dataSize);
+                //sendBytes作成
+                byte[] sendBytes = new byte[sendHeader.Length + _dataSize];
                 sendHeader.CopyTo(sendBytes, 0);
                 _sendData.CopyTo(sendBytes, sendHeader.Length);
 
@@ -81,17 +81,19 @@ namespace OpenSocket
                 }
                 catch (System.ObjectDisposedException)
                 {
-                //閉じた時
-                /*
-                System.Console.WriteLine("閉じました。");
-                this.OnDeleteFlg();
-                */
+                    //閉じた時
+                    /*
+                    System.Console.WriteLine("閉じました。");
+                    this.OnDeleteFlg();
+                    */
                 }
                 catch (SocketException e)
                 {
-                //Console.WriteLine("ソケットが切断されています。");
-                //Console.WriteLine(e);
-            }
+                    FileController file = FileController.GetInstance();
+                    file.Write("error", e.Message);
+                    //Console.WriteLine("ソケットが切断されています。");
+                    //Console.WriteLine(e);
+                }
             });
 
         }

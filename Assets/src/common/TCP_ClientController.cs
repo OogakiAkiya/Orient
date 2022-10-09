@@ -13,31 +13,59 @@ public class TCP_ClientController : MonoBehaviour
     TCP_Client socket = new TCP_Client();
 
     //Debug用(clientからデータを送りserverからデータを受け取る処理)
-    [SerializeField] Text debugText = null;                                     //ここにサーバから送ってきたデバッグ用の文字列が入る
-    System.Diagnostics.Stopwatch timer = new System.Diagnostics.Stopwatch();
-    public bool doDebugSend { private get; set; } = false;                                                     //ここがtrueになるとデバッグ用の処理が走る
-    int count = 123;
+    [SerializeField] Text debugText = null;                                         //サーバから送ってきたデバッグ用の文字列が入る
+    System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+    public bool doDebugSend { private get; set; } = false;                          //trueになるとデバッグ用の処理が走る
+    bool hasConnectionError = true;                                                 //trueがサーバへ接続できなかった状態
+    int count = 0;                                                                  //サーバに送るテストデータ
 
 
     void Start()
     {
-        //通信設定
-        socket.Init(hostname, destPort);                      //接続先サーバ情報
-        socket.StartRecvThread();                     //非同期通信Recv用のスレッド作成
+        //todo: 最終的に非同期で接続を試行しUpdateの関数を呼び出すタイミングで接続中などの文字を表示する
+
+        Timer timer = new Timer();
+        //サーバ接続
+        while (true)
+        {
+            Debug.Log(timer.GetTime_Minutes().ToString());
+
+            //接続テスト実施し成功したら正式に接続
+            if (socket.TryConnect(hostname, destPort,5000))
+            {
+                socket.Init(hostname, destPort);
+                break;
+            }
+
+            //接続タイムアウト
+            if (timer.GetTime_Second() > 10)
+            {
+                Debug.Log("Server not found");
+                return;
+            }
+        }
+
+        //非同期通信Recv用のスレッド作成
+        socket.StartRecvThread();                                     
 
         //フラグ起動(テスト用)
         doDebugSend = true;
+
+        //正常にサーバへ接続できた状態へフラグ変更
+        hasConnectionError = false;
     }
 
     void Update()
     {
+        if (hasConnectionError) return;
+
         //TCP Clientのデータ更新処理(受信データの参照よりも先に行う必要あり)
         socket.Update();
 
         if (doDebugSend)
         {
             //タイマーのリセット
-            timer.Restart();
+            stopwatch.Restart();
 
             //テストデータ送信処理を次に記載
             DebugSend(GameHeader.ID.DEBUG, (byte)GameHeader.GameCode.DEBUGDATA);
@@ -51,8 +79,6 @@ public class TCP_ClientController : MonoBehaviour
         {
             RecvRoutine();
         }
-
-
 
     }
 
@@ -71,7 +97,7 @@ public class TCP_ClientController : MonoBehaviour
         {
             //データ処理例
             int data = BitConverter.ToInt32(recvData, GameHeader.HEADER_SIZE);
-            if(debugText)debugText.text = $"DataSize:" + recvData.Length + "\nData:" + data + "\nTCP応答時間:" + timer.ElapsedMilliseconds + "ミリ秒";
+            if(debugText)debugText.text = $"DataSize:" + recvData.Length + "\nData:" + data + "\nTCP応答時間:" + stopwatch.ElapsedMilliseconds + "ミリ秒";
             doDebugSend = true;
         }
     }

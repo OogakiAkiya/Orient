@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using UnityEngine;
 
+
 namespace OpenSocket
 {
     class TCP_Client
@@ -22,28 +23,32 @@ namespace OpenSocket
 
         ~TCP_Client() { socket.Close(); }
 
-        public bool TryConnect(string _ipAddr, int _port)
+        public bool TryConnect(string _hostname, int _port,int _timeout = 1000)
         {
             try
             {
-                int timeout = 1000;
                 socket = new TcpClient();
-                Task task = socket.ConnectAsync(_ipAddr, _port);
-                if (!task.Wait(timeout))
+                Task task = socket.ConnectAsync(_hostname, _port);
+                if (!task.Wait(_timeout))
                 {
                     socket.Close();
-                    //throw new SocketException(10060);
+                    FileController file = FileController.GetInstance();
+                    file.Write("error", "Warning:Connection Faild Timeout");
                     return false;
                 }
             }
             catch (SocketException e)
             {
                 socket.Close();
+                FileController file = FileController.GetInstance();
+                file.Write("error",e.Message);
                 return false;
             }
             catch (AggregateException ae)
             {
                 socket.Close();
+                FileController file = FileController.GetInstance();
+                file.Write("error", ae.Message);
                 return false;
             }
             socket.Close();
@@ -52,7 +57,13 @@ namespace OpenSocket
 
         public void Init(string _hostname, int _destPort)
         {
-            socket = new System.Net.Sockets.TcpClient(_hostname, _destPort);
+            try
+            {
+                socket = new System.Net.Sockets.TcpClient(_hostname, _destPort);
+            } catch (System.Exception e) {
+                FileController file = FileController.GetInstance();
+                file.Write("error", e.Message);
+            }
 
             //通信設定
             ns = socket.GetStream();
