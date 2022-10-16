@@ -12,7 +12,7 @@ using OpenSocket;
 public class UDP_ClientController : MonoBehaviour
 {
     [SerializeField] string hostname = "127.0.0.1";
-    [SerializeField] int destPort = 12344;
+    [SerializeField] int destPort = 17700;
     [SerializeField] Text debugText = null;                                     //ここにサーバから送ってきたデバッグ用の文字列が入る
 
     uint nowSequence = 0;
@@ -68,7 +68,7 @@ public class UDP_ClientController : MonoBehaviour
         header.DecodeHeader(recvData, sizeof(uint));
 
         //ヘッダーごとの処理
-        Debug.Log("データ来た");
+
     }
     void DebugSend(GameHeader.ID _id, byte _code = 0x0000)
     {

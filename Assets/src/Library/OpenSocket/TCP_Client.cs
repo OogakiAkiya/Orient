@@ -18,6 +18,10 @@ namespace OpenSocket
         private NetworkStream ns;
         private System.Object lockObject = new System.Object();
         private bool deleteFlg = false;
+        private static readonly int HEADERSIZE = sizeof(int);
+        private static readonly string ENDMARKER = "\r\n";
+        private static readonly int TCP_BUFFERSIZE = 2048;
+
 
         public TCP_Client() { }
 
@@ -71,14 +75,17 @@ namespace OpenSocket
 
         public async Task Send(byte[] _sendData, int _dataSize)
         {
-            byte[] sendHeader;
             //header設定
-            sendHeader = BitConverter.GetBytes(_dataSize);
+            byte[] sendHeader = BitConverter.GetBytes(_dataSize);
+            //fotter設定
+            byte[] sendFooter = Convert.ToStringUTF8Byte(ENDMARKER);
+
             //sendBytes作成
-            byte[] sendBytes = new byte[sendHeader.Length + _dataSize];
+            byte[] sendBytes = new byte[sendHeader.Length + _dataSize + sendFooter.Length];
             sendHeader.CopyTo(sendBytes, 0);
             _sendData.CopyTo(sendBytes, sendHeader.Length);
-
+            sendFooter.CopyTo(sendBytes, sendHeader.Length + _dataSize);
+            
             await Task.Run(() =>
             {
             //send
@@ -124,19 +131,41 @@ namespace OpenSocket
         {
             lock (lockObject)
             {
-                while (recvTempDataList.Count > sizeof(int))
+                while (recvTempDataList.Count > HEADERSIZE)
                 {
-                    int byteSize = (int)recvTempDataList[0];
-                    Console.WriteLine("Routine size={0}\n", byteSize);
-                    if (recvTempDataList.Count >= byteSize + sizeof(int))
+                    try
                     {
-                        byte[] addData;
-                        addData = recvTempDataList.GetRange(sizeof(int), byteSize).ToArray();
-                        recvDataList.Add(addData);
-                        recvTempDataList.RemoveRange(0, sizeof(int) + byteSize);
+                        //先頭パケット解析
+                        int byteSize = (int)recvTempDataList[0];
+                        if (byteSize < 0 || byteSize > TCP_BUFFERSIZE - HEADERSIZE - ENDMARKER.Length)
+                        {
+                            recvTempDataList.Clear();
+                            return;
+                        }
+
+                        //エンドマーカーの値が正常かチェック
+                        if (!ENDMARKER.Equals(Convert.StringUTF8ByteConversion(recvTempDataList.ToArray(), HEADERSIZE + byteSize)))
+                        {
+                            recvTempDataList.Clear();
+                            return;
+                        }
+
+                        if (recvTempDataList.Count >= byteSize + HEADERSIZE + ENDMARKER.Length)
+                        {
+                            byte[] addData;
+                            addData = recvTempDataList.GetRange(HEADERSIZE, byteSize).ToArray();
+                            recvDataList.Add(addData);
+                            recvTempDataList.RemoveRange(0, HEADERSIZE + byteSize + ENDMARKER.Length);
+                        }
+                        else
+                        {
+                            return;
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
+                        recvTempDataList.Clear();
+                        FileController.GetInstance().Write("Exception.txt", e.Message);
                         return;
                     }
                 }

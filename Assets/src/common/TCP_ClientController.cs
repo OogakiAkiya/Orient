@@ -9,7 +9,7 @@ public class TCP_ClientController : MonoBehaviour
 {
     //ipアドレスとポート番号設定
     [SerializeField] string hostname ="127.0.0.1";
-    [SerializeField] int destPort = 12345;
+    [SerializeField] int destPort = 17600;
     TCP_Client socket = new TCP_Client();
 
     //Debug用(clientからデータを送りserverからデータを受け取る処理)

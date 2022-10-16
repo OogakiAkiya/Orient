@@ -346,7 +346,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cfb6327d8e1c6a548831ba0e2c7d1f34, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hostname: 13.114.108.234
+  hostname: 127.0.0.1
   destPort: 17700
   debugText: {fileID: 828853286}
 --- !u!114 &588705176
@@ -361,7 +361,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92c5204d2f6b0de47a745d83969bfbed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hostname: 13.114.108.234
+  hostname: 127.0.0.1
   destPort: 17600
   debugText: {fileID: 469713806}
 --- !u!1 &675923758

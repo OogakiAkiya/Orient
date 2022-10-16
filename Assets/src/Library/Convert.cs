@@ -70,6 +70,11 @@ public static class Convert
     {
         return BitConverter.GetBytes(_data);
     }
+    public static byte[] ToStringUTF8Byte(string _data)
+    {
+        return System.Text.Encoding.UTF8.GetBytes(_data);
+    }
+
 
     public static float FloatConversion(byte[] _data, int _index)
     {
@@ -84,4 +89,11 @@ public static class Convert
         return BitConverter.ToBoolean(_data, _index);
     }
 
+    public static string StringUTF8ByteConversion(byte[] _data, int _index)
+    {
+        byte[] encData = new byte[_data.Length - _index];
+        Array.Copy(_data, _index, encData, 0, encData.Length);
+        return System.Text.Encoding.UTF8.GetString(encData);
+    }
 }
+
