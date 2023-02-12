@@ -17,9 +17,7 @@ public class UDP_ClientController : MonoBehaviour
 
     uint nowSequence = 0;
     UDP_Client socket = new UDP_Client();
-
     byte[] recvData;
-    GameHeader header = new GameHeader();
 
     void Start()
     {
@@ -27,14 +25,13 @@ public class UDP_ClientController : MonoBehaviour
         socket.Init(destPort);
 
         //UDPのデータを受け取るためにサーバからデータを受け取る前に通信経路確保のためクライアントからデータを送っておく
-        DebugSend(GameHeader.ID.DEBUG);
+        DebugSend(GameHeader.ID.DEBUG,(byte)GameHeader.GameCode.DEBUGDATA);
         //send処理
     }
 
     void Update()
     {
-        DebugSend(GameHeader.ID.DEBUG);
-        Debug.Log(socket.server.GetRecvDataSize());
+        DebugSend(GameHeader.ID.DEBUG, (byte)GameHeader.GameCode.DEBUGDATA);
         while (socket.server.GetRecvDataSize() > 0)
         {
             RecvRoutine();
@@ -65,20 +62,31 @@ public class UDP_ClientController : MonoBehaviour
         nowSequence = sequence;
 
         //受信データのデコード
-        header.DecodeHeader(recvData, sizeof(uint));
+        GameHeader header = new GameHeader();
+        header.DecodeHeader(recvData,sizeof(uint));
 
         //ヘッダーごとの処理
-
+        if (!debugText) return;
+        if(header.id == GameHeader.ID.DEBUG) debugText.text = $"header.id=DEGUG\n";
+        if((GameHeader.GameCode)header.code == GameHeader.GameCode.DEBUGDATA) debugText.text += $"header.code=DEGUGDATA";
     }
     void DebugSend(GameHeader.ID _id, byte _code = 0x0000)
     {
         //データ生成
-        byte[] sendData;
+        //byte[] sendData;
+        //GameHeader header = new GameHeader();
+        //header.CreateNewData((GameHeader.ID)_id,_code);
+        //sendData = header.GetHeader();
+
+        List<byte> sendData = new List<byte>();
+        byte[] padding=new byte[10];
+        
         GameHeader header = new GameHeader();
         header.CreateNewData((GameHeader.ID)_id,_code);
-        sendData = header.GetHeader();
+        sendData.AddRange(header.GetHeader());
+        sendData.AddRange(padding);
 
         //送信処理(非同期実行)
-        socket.Send(sendData, hostname, destPort);
+        socket.Send(sendData.ToArray(), hostname, destPort);
     }
 }

@@ -28,7 +28,6 @@ public class TCP_ClientController : MonoBehaviour
         //サーバ接続
         while (true)
         {
-            Debug.Log(timer.GetTime_Minutes().ToString());
 
             //接続テスト実施し成功したら正式に接続
             if (socket.TryConnect(hostname, destPort,5000))
